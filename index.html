@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuaCord - Write Minecraft Plugins in Lua</title>
+    
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .gradient-button {
+            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .gradient-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(74, 144, 226, 0.3);
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #4A90E2;
+            transform: translateY(-5px);
+        }
+        
+        .code-block {
+            background: #161616;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .code-block:hover {
+            border-color: #4A90E2;
+            box-shadow: 0 8px 30px rgba(74, 144, 226, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fadein {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .animate-delay-1 {
+            animation-delay: 0.2s;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+        
+        .logo-svg {
+            filter: drop-shadow(0 0 30px rgba(74, 144, 226, 0.5));
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-black/50 backdrop-blur-md z-50 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="https://thegamingmahi.github.io" class="flex items-center">
+                <img src="/static/logo.png" alt="LuaCord" class="w-10 h-10">
+            </a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#home" class="hover:text-blue-400 transition">Home</a>
+                <a href="#features" class="hover:text-blue-400 transition">Features</a>
+                <a href="#quickstart" class="hover:text-blue-400 transition">Quick Start</a>
+                <a href="https://thegamingmahi.github.io/generator.html" class="hover:text-blue-400 transition">JAR Generator</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center pt-20">
+        <div class="max-w-7xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+            <div>
+                <h1 class="text-6xl md:text-7xl font-black mb-6 leading-tight">
+                    <span class="gradient-text">LuaCord</span><br>
+                    <span class="text-white">Write Minecraft<br>plugins in Lua</span>
+                </h1>
+                <p class="text-gray-400 text-lg mb-8 leading-relaxed">
+                    A modern plugin framework that lets you create powerful Minecraft plugins using simple Lua scripting with full Spigot API access.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="https://www.curseforge.com/minecraft/bukkit-plugins/luacord" class="gradient-button px-8 py-3 rounded-lg font-semibold">
+                        Download
+                    </a>
+                    <a href="https://docs.lukkit.net/" class="px-8 py-3 rounded-lg font-semibold border-2 border-blue-500 hover:bg-blue-500/10 transition">
+                        Docs
+                    </a>
+                    <a href="https://thegamingmahi.github.io/generator.html" class="px-8 py-3 rounded-lg font-semibold border-2 border-gray-600 hover:border-blue-500 hover:bg-blue-500/10 transition">
+                        JAR Generator
+                    </a>
+                    <a href="https://github.com/TheGamingMahi/LuaCord" class="px-8 py-3 rounded-lg font-semibold border-2 border-gray-600 hover:border-gray-500 transition">
+                        GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="flex justify-center">
+                <img src="/static/logo.png" alt="LuaCord Logo" class="w-80 h-80 logo-svg object-contain">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16">
+                Why <span class="gradient-text">LuaCord</span>?
+            </h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card rounded-xl p-8">
+                    <div class="text-5xl mb-4">🎯</div>
+                    <h3 class="text-2xl font-bold mb-4">Easy to Learn</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Lua is much simpler than Java. No compilation needed, just write and reload. Perfect for beginners and rapid development.
+                    </p>
+                </div>
+                <div class="feature-card rounded-xl p-8">
+                    <div class="text-5xl mb-4">⚡</div>
+                    <h3 class="text-2xl font-bold mb-4">Full API Access</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Complete access to the Spigot API. Commands, events, permissions - everything works just like Java plugins.
+                    </p>
+                </div>
+                <div class="feature-card rounded-xl p-8">
+                    <div class="text-5xl mb-4">📦</div>
+                    <h3 class="text-2xl font-bold mb-4">JAR Support</h3>
+                    <p class="text-gray-400 leading-relaxed">
+                        Package your Lua plugins as proper .jar files for easy distribution on CurseForge and other platforms.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section id="quickstart" class="py-20">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-4xl font-bold text-center mb-16">
+                Get Started in <span class="gradient-text">Minutes</span>
+            </h2>
+            
+            <div class="space-y-6 mb-12">
+                <div class="code-block rounded-xl p-6 animate-fadein">
+                    <div class="text-sm text-gray-500 mb-2">main.lua</div>
+                    <pre class="text-sm overflow-x-auto"><code class="text-gray-300">plugin:onEnable(function()
+    logger:info("Plugin enabled!")
+end)
+
+plugin:addCommand({
+    name = "heal",
+    description = "Heal yourself"
+}, function(event)
+    local player = event:getSender()
+    player:setHealth(20)
+    player:sendMessage("Healed!")
+end)
+
+plugin:registerEvent("PlayerJoinEvent", function(event)
+    local player = event:getPlayer()
+    player:sendMessage("Welcome to the server!")
+end)</code></pre>
+                </div>
+
+                <div class="code-block rounded-xl p-6 animate-fadein animate-delay-1">
+                    <div class="text-sm text-gray-500 mb-2">plugin.yml</div>
+                    <pre class="text-sm overflow-x-auto"><code class="text-gray-300">name: MyPlugin
+version: 1.0
+main: main.lua
+author: YourName
+description: My awesome plugin</code></pre>
+                </div>
+            </div>
+
+            <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-3 flex items-center">
+                    <span class="text-2xl mr-3">💡</span>
+                    Installation
+                </h3>
+                <ol class="space-y-2 text-gray-300">
+                    <li>1. Download LuaCord and place in <code class="bg-black/50 px-2 py-1 rounded">/plugins/</code></li>
+                    <li>2. Add your <code class="bg-black/50 px-2 py-1 rounded">.lkt</code> plugins to <code class="bg-black/50 px-2 py-1 rounded">/plugins/</code></li>
+                    <li>3. Restart your server - done!</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 py-12 mt-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <h4 class="font-bold text-lg mb-4 gradient-text">LuaCord</h4>
+                    <p class="text-gray-400 text-sm">
+                        Modern Minecraft plugin framework using Lua. Forked from Lukkit with full Paper compatibility.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Links</h4>
+                    <div class="space-y-2 text-sm">
+                        <a href="https://www.curseforge.com/minecraft/bukkit-plugins/luacord" class="block text-gray-400 hover:text-blue-400 transition">Download</a>
+                        <a href="https://docs.lukkit.net/" class="block text-gray-400 hover:text-blue-400 transition">Documentation</a>
+                        <a href="https://github.com/TheGamingMahi/LuaCord" class="block text-gray-400 hover:text-blue-400 transition">GitHub</a>
+                        <a href="https://github.com/TheGamingMahi/LuaCord/issues" class="block text-gray-400 hover:text-blue-400 transition">Report Issue</a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg mb-4">Credits</h4>
+                    <div class="text-sm text-gray-400">
+                        <p class="mb-2">Created by <span class="text-blue-400">TheGamingMahi</span></p>
+                        <p class="text-xs">Based on Lukkit by the original Lukkit team</p>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-sm text-gray-500 pt-8 border-t border-white/10">
+                <p>LuaCord is licensed under GPL v3 • © 2025 TheGamingMahi</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

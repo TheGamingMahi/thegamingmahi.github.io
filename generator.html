@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAR Generator - LuaCord</title>
+    
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .gradient-button {
+            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .gradient-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(74, 144, 226, 0.3);
+        }
+        
+        .gradient-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .form-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .file-upload {
+            border: 2px dashed rgba(74, 144, 226, 0.5);
+            background: rgba(74, 144, 226, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .file-upload:hover {
+            border-color: #4A90E2;
+            background: rgba(74, 144, 226, 0.1);
+        }
+        
+        .file-upload.dragover {
+            border-color: #50E3C2;
+            background: rgba(80, 227, 194, 0.1);
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-black/50 backdrop-blur-md z-50 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="https://thegamingmahi.github.io" class="flex items-center">
+                <img src="/static/logo.png" alt="LuaCord" class="w-10 h-10">
+            </a>
+            <a href="https://thegamingmahi.github.io" class="text-gray-400 hover:text-white transition">← Back to Home</a>
+        </div>
+    </nav>
+
+    <!-- Generator Section -->
+    <section class="min-h-screen pt-28 pb-20">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-black mb-4">
+                    <span class="gradient-text">JAR Generator</span>
+                </h1>
+                <p class="text-gray-400 text-lg">
+                    Package your .lkt plugin as a .jar file for easy distribution
+                </p>
+            </div>
+
+            <div class="form-card rounded-2xl p-8 md:p-12">
+                <form id="jarForm" class="space-y-8">
+                    <!-- File Upload -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-3 text-gray-300">
+                            Upload .lkt Plugin *
+                        </label>
+                        <div class="file-upload rounded-xl p-12 text-center cursor-pointer" id="fileUpload">
+                            <input type="file" id="lktFile" accept=".lkt" class="hidden" required>
+                            <div id="uploadPrompt">
+                                <div class="text-5xl mb-4">📦</div>
+                                <p class="text-lg font-semibold mb-2">Drop your .lkt file here</p>
+                                <p class="text-sm text-gray-400">or click to browse</p>
+                            </div>
+                            <div id="uploadSuccess" class="hidden">
+                                <div class="text-5xl mb-4">✅</div>
+                                <p class="text-lg font-semibold mb-2" id="fileName"></p>
+                                <button type="button" id="changeFile" class="text-sm text-blue-400 hover:text-blue-300">
+                                    Change file
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Your .lkt file contains main.lua and plugin.yml
+                        </p>
+                    </div>
+
+                    <!-- Plugin Info -->
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="pluginName" class="block text-sm font-semibold mb-3 text-gray-300">
+                                Plugin Name *
+                            </label>
+                            <input 
+                                type="text" 
+                                id="pluginName" 
+                                required
+                                placeholder="MyAwesomePlugin"
+                                class="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="version" class="block text-sm font-semibold mb-3 text-gray-300">
+                                Version *
+                            </label>
+                            <input 
+                                type="text" 
+                                id="version" 
+                                required
+                                placeholder="1.0.0"
+                                class="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500"
+                            >
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="author" class="block text-sm font-semibold mb-3 text-gray-300">
+                            Author *
+                        </label>
+                        <input 
+                            type="text" 
+                            id="author" 
+                            required
+                            placeholder="YourName"
+                            class="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-semibold mb-3 text-gray-300">
+                            Description *
+                        </label>
+                        <textarea 
+                            id="description" 
+                            required
+                            rows="3"
+                            placeholder="A brief description of what your plugin does"
+                            class="w-full bg-black/50 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 resize-none"
+                        ></textarea>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                        <h3 class="font-semibold mb-3 flex items-center text-blue-400">
+                            <span class="text-xl mr-2">ℹ️</span>
+                            What gets generated?
+                        </h3>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li>✓ A .jar file with your .lkt plugin embedded</li>
+                            <li>✓ Automatic dependency on LuaCord (hardcoded)</li>
+                            <li>✓ Proper plugin.yml with your information</li>
+                            <li>✓ Ready to upload to CurseForge or distribute</li>
+                        </ul>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button 
+                        type="submit" 
+                        id="generateBtn"
+                        class="w-full gradient-button px-8 py-4 rounded-lg font-bold text-lg"
+                    >
+                        Generate JAR File
+                    </button>
+                </form>
+
+                <!-- Progress/Success Messages -->
+                <div id="progressArea" class="hidden mt-8 space-y-4">
+                    <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-6 text-center">
+                        <div class="text-5xl mb-4">🎉</div>
+                        <h3 class="text-xl font-bold mb-2 text-green-400">JAR Generated Successfully!</h3>
+                        <p class="text-gray-300 mb-4">Your plugin is ready for distribution</p>
+                        <button id="downloadBtn" class="gradient-button px-8 py-3 rounded-lg font-semibold">
+                            Download JAR
+                        </button>
+                    </div>
+                </div>
+
+                <div id="errorArea" class="hidden mt-8">
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                        <h3 class="text-xl font-bold mb-2 text-red-400">Error</h3>
+                        <p class="text-gray-300" id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How it Works -->
+            <div class="mt-16 grid md:grid-cols-3 gap-6 text-center">
+                <div>
+                    <div class="text-4xl mb-3">📤</div>
+                    <h3 class="font-bold mb-2">Upload</h3>
+                    <p class="text-sm text-gray-400">Upload your .lkt plugin file</p>
+                </div>
+                <div>
+                    <div class="text-4xl mb-3">✏️</div>
+                    <h3 class="font-bold mb-2">Customize</h3>
+                    <p class="text-sm text-gray-400">Fill in plugin metadata</p>
+                </div>
+                <div>
+                    <div class="text-4xl mb-3">📦</div>
+                    <h3 class="font-bold mb-2">Download</h3>
+                    <p class="text-sm text-gray-400">Get your ready-to-use .jar</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // API endpoint for AlwaysData
+        const API_URL = 'https://thegamingmahi.alwaysdata.net/api/generate';
+        
+        // File upload handling
+        const fileUpload = document.getElementById('fileUpload');
+        const fileInput = document.getElementById('lktFile');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const uploadSuccess = document.getElementById('uploadSuccess');
+        const fileName = document.getElementById('fileName');
+        const changeFile = document.getElementById('changeFile');
+        
+        fileUpload.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileName.textContent = e.target.files[0].name;
+                uploadPrompt.classList.add('hidden');
+                uploadSuccess.classList.remove('hidden');
+            }
+        });
+        
+        changeFile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            uploadPrompt.classList.remove('hidden');
+            uploadSuccess.classList.add('hidden');
+        });
+        
+        // Drag and drop
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+        
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+        
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                fileName.textContent = e.dataTransfer.files[0].name;
+                uploadPrompt.classList.add('hidden');
+                uploadSuccess.classList.remove('hidden');
+            }
+        });
+        
+        // Form submission
+        const form = document.getElementById('jarForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const progressArea = document.getElementById('progressArea');
+        const errorArea = document.getElementById('errorArea');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Disable button
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            
+            // Hide previous messages
+            progressArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+            
+            // Create FormData
+            const formData = new FormData();
+            formData.append('lktFile', fileInput.files[0]);
+            formData.append('pluginName', document.getElementById('pluginName').value);
+            formData.append('version', document.getElementById('version').value);
+            formData.append('author', document.getElementById('author').value);
+            formData.append('description', document.getElementById('description').value);
+            
+            try {
+                // Send to AlwaysData API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Generation failed');
+                }
+                
+                // Get the JAR file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                // Show success
+                progressArea.classList.remove('hidden');
+                
+                // Setup download
+                document.getElementById('downloadBtn').onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${document.getElementById('pluginName').value}.jar`;
+                    a.click();
+                };
+                
+            } catch (error) {
+                errorMessage.textContent = error.message || 'An error occurred while generating the JAR file.';
+                errorArea.classList.remove('hidden');
+            } finally {
+                // Re-enable button
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate JAR File';
+            }
+        });
+    </script>
+</body>
+</html>

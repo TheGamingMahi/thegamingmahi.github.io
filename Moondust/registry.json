@@ -4,5 +4,23 @@
       "github_id": 137300915
     }
   },
-  "packages": {}
+  "packages": {
+    "thegamingmahi/tinyfiles": {
+      "description": "Tiny Lua library for reading, writing and appending files, simple YAML and JSON config, and Roblox-style wait() and file.parent.",
+      "versions": {
+        "1.0.0": {
+          "repo": "TheGamingMahi/TinyFiles",
+          "commit": "830ea1e5379f4ad6468b7e77c5fdf9faacab4d12",
+          "main": "tinyfiles.lua",
+          "lua": [
+            "5.1",
+            "5.2",
+            "5.3",
+            "5.4",
+            "5.5"
+          ]
+        }
+      }
+    }
+  }
 }

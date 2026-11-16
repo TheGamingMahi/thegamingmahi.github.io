@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moondust</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da;--gr:#1f883d}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8;--gr:#238636}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+header{border-bottom:1px solid var(--bd);background:var(--card)}
+.w{max-width:860px;margin:0 auto;padding:0 16px}
+header .w{display:flex;align-items:center;justify-content:space-between;height:56px}
+header strong{font-size:20px}
+a{color:var(--ac);text-decoration:none}a:hover{text-decoration:underline}
+h2{font-size:20px;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+pre,code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0}
+code{background:var(--card);padding:2px 6px;border-radius:6px}
+.mu{color:var(--mu)}
+.card{border:1px solid var(--bd);border-radius:6px;padding:12px 16px;margin:8px 0}
+input{width:100%;padding:6px 12px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:6px}
+.btn{display:inline-block;padding:5px 16px;font:inherit;font-weight:500;color:#fff;background:var(--gr);border:0;border-radius:6px;cursor:pointer}
+.btn:hover{text-decoration:none;opacity:.9}
+.row{display:flex;gap:8px;margin:8px 0}
+#msg{min-height:24px;margin-top:8px}
+</style>
+</head>
+<body>
+<header><div class="w"><strong>Moondust</strong>
+<span><a href="moondust.lua" download>Download moondust.lua</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a></span></div></header>
+<main class="w">
+<p>A tiny package manager for Lua. Drop in one file, then <code>require</code> packages by name.</p>
+<pre>curl -O https://thegamingmahi.github.io/Moondust/moondust.lua</pre>
+<pre>local moondust = require("moondust")
+local json = moondust("alice/json")        -- latest
+local old  = moondust("alice/json@1.0.0")  -- exact version</pre>
+
+<h2>Packages</h2>
+<input id="q" placeholder="Search packages" aria-label="Search packages">
+<div id="list"></div>
+
+<h2>Publish</h2>
+<p class="mu">Your public GitHub repo needs a <code>moondust.json</code> in its root:</p>
+<pre>{ "name": "json", "version": "1.0.0", "main": "json.lua", "lua": ["5.1", "5.3", "5.4"] }</pre>
+<div id="acct" class="mu">Loading…</div>
+<div id="msg"></div>
+<p class="mu">Packages aren’t reviewed. Check what you install.</p>
+</main>
+<script>
+const API="https://moondust.arclightsmp.com";
+const $=s=>document.querySelector(s);
+const el=(t,a={},...k)=>{const e=document.createElement(t);for(const x in a)x==="text"?e.textContent=a[x]:e.setAttribute(x,a[x]);e.append(...k);return e};
+let token="";
+try{
+  if(location.hash.startsWith("#token=")){localStorage.setItem("md_token",location.hash.slice(7));history.replaceState(null,"",location.pathname)}
+  token=localStorage.getItem("md_token")||"";
+}catch(e){}
+
+const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]>y[i];return false};
+let pkgs=[];
+async function loadPkgs(){
+  try{
+    const d=await(await fetch("registry.json",{cache:"no-store"})).json();
+    pkgs=Object.entries(d.packages||{}).map(([name,p])=>{
+      const vs=Object.keys(p.versions||{});
+      if(!vs.length)return null;
+      const v=vs.reduce((a,b)=>newer(b,a)?b:a);
+      return{name,desc:p.description||"",v,e:p.versions[v]};
+    }).filter(Boolean);
+  }catch(e){pkgs=[]}
+  render();
+}
+function render(){
+  const q=$("#q").value.toLowerCase(),box=$("#list");
+  box.replaceChildren();
+  const hits=pkgs.filter(p=>(p.name+" "+p.desc).toLowerCase().includes(q));
+  if(!hits.length)box.append(el("div",{class:"card mu",text:"No packages yet."}));
+  for(const p of hits){
+    const lua=(p.e.lua||[]).length?"Lua "+p.e.lua.join(", "):"any Lua";
+    const c=el("div",{class:"card"},
+      el("div",{},el("strong",{text:p.name}),el("span",{class:"mu",text:"  v"+p.v+" · "+lua})),
+      el("div",{class:"mu",text:p.desc}),
+      el("code",{text:'moondust("'+p.name+'")'}));
+    if(/^[\w.-]+\/[\w.-]+$/.test(p.e.repo))c.append(" ",el("a",{href:"https://github.com/"+p.e.repo,text:"source"}));
+    box.append(c);
+  }
+}
+$("#q").addEventListener("input",render);
+
+async function api(path,body){
+  const r=await fetch(API+path,{method:body?"POST":"GET",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(r.status===401){try{localStorage.removeItem("md_token")}catch(e){}token=""}
+  if(!r.ok)throw new Error(d.error||"request failed");
+  return d;
+}
+const say=(t,bad)=>{$("#msg").textContent=t;$("#msg").style.color=bad?"#d1242f":""};
+function form(label,btn,ph,fn){
+  const i=el("input",{placeholder:ph,"aria-label":label}),b=el("button",{class:"btn",text:btn});
+  b.onclick=async()=>{try{say("Working…");await fn(i.value)}catch(e){say(e.message,1)}};
+  return el("div",{class:"row"},i,b);
+}
+async function account(){
+  const a=$("#acct");a.replaceChildren();
+  if(!token){a.append(el("a",{class:"btn",href:API+"/auth/login",text:"Log in with GitHub"}));return}
+  try{
+    const me=await api("/api/me");
+    if(!me.username){
+      a.append(el("p",{text:"Hi "+me.login+". Pick your username. You can only do this once and can’t change it later."}),
+        form("Username","Claim","username",async v=>{const d=await api("/api/username",{username:v});say("You are "+d.username+".");account()}));
+    }else{
+      a.append(el("p",{text:"Signed in as "+me.username+". Your repo needs a moondust.json in its root."}),
+        form("Repository","Publish","github.com/"+me.login+"/my-lib",async v=>{const d=await api("/api/publish",{repo:v});say("Published "+d.published+". It can take a minute to show up above.");setTimeout(loadPkgs,60000)}));
+    }
+  }catch(e){a.append(el("a",{class:"btn",href:API+"/auth/login",text:"Log in with GitHub"}),el("p",{class:"mu",text:token?e.message:""}))}
+}
+loadPkgs();account();
+</script>
+</body>
+</html>

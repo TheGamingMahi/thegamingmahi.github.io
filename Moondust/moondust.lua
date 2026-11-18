@@ -5,9 +5,11 @@
 --   local tf  = moondust("thegamingmahi/tinyfiles")          -- latest version
 --   local old = moondust("thegamingmahi/tinyfiles@1.0.0")    -- exact version
 --
--- First run downloads the package into ./lua_modules/, later runs reuse it.
+-- First run downloads the package into ./lua_modules/author/package.lua, later runs reuse it.
+-- It also creates a small .luarc.json so editors that use LuaLS (VS Code, Neovim, Zed)
+-- autocomplete moondust("...") like a normal require. Set MOONDUST_NO_LUARC=1 to skip that.
 -- Needs `curl` (built into macOS, Linux and Windows 10+).
--- Works on Lua 5.1 to 5.5 and LuaJIT.
+-- Written for Lua 5.1 to 5.5 and LuaJIT (tested on 5.1 and 5.4).
 -- In LÖVE 12+ it uses LÖVE's built-in https module instead of curl, and saves
 -- packages in the game's save folder. Call it from love.load (downloads block).
 --
@@ -19,7 +21,7 @@ local SITE = "https://thegamingmahi.github.io/Moondust/"
 local DIR = "lua_modules"
 local LOCK = "moondust.lock"
 
-local M = { version = "0.1.0" }
+local M = { version = "0.2.0" }
 local loaded = {}
 
 local function fail(msg)
@@ -166,7 +168,13 @@ local function check_lua(name, e)
     .. " (you are running " .. current .. ")")
 end
 
-local function path_for(name, ver)
+-- the project's current version of a package lives at a plain path, so editors can find it
+local function stable_path(name)
+  return DIR .. "/" .. name .. ".lua"
+end
+
+-- other exact versions are kept next to it
+local function versioned_path(name, ver)
   return DIR .. "/" .. name .. "@" .. ver .. ".lua"
 end
 
@@ -187,7 +195,25 @@ local function write_lock(t)
   if not write_text(LOCK, table.concat(out)) then fail("could not write " .. LOCK) end
 end
 
-local function download(name, wanted)
+-- tells LuaLS (the engine behind most Lua editor plugins) to treat moondust("...") like require
+local EDITOR_CONFIG = '{\n  "runtime.special": { "moondust": "require" },\n  "runtime.path": ["?.lua", "?/init.lua", "'
+  .. DIR .. '/?.lua"],\n  "workspace.library": ["' .. DIR .. '"]\n}\n'
+local told = false
+
+local function editor_config()
+  if LOVE or told or os.getenv("MOONDUST_NO_LUARC") then return end
+  told = true
+  local current = read_text(".luarc.json")
+  if current == nil then
+    if write_text(".luarc.json", EDITOR_CONFIG) then
+      io.stderr:write("moondust: created .luarc.json so your editor can autocomplete moondust(...)\n")
+    end
+  elseif not current:find("moondust", 1, true) then
+    io.stderr:write("moondust: for editor autocomplete, add these settings to your .luarc.json:\n" .. EDITOR_CONFIG)
+  end
+end
+
+local function download(name, wanted, current)
   local e = resolve(name, wanted)
   check_lua(name, e)
 
@@ -197,26 +223,29 @@ local function download(name, wanted)
 
   -- pinned to an exact commit, so the author can't change the code later
   local url = "https://raw.githubusercontent.com/" .. e.repo .. "/" .. e.commit .. "/" .. e.main
-  local path = path_for(name, e.version)
+  local path = current and stable_path(name) or versioned_path(name, e.version)
   if not download_to(url, path) then fail("download failed for " .. name) end
   return path, e.version
 end
 
--- downloads a package; "latest" requests are remembered in moondust.lock
-local function fetch(name, wanted)
-  local path, ver = download(name, wanted)
-  if not wanted then
+-- downloads the project's current version of a package and remembers it in moondust.lock
+local function fetch(name, wanted, current)
+  local path, ver = download(name, wanted, current)
+  if current then
     local lock = read_lock()
     lock[name] = ver
     write_lock(lock)
+    editor_config()
   end
   return path, ver
 end
 
 function M.install(spec)
   local name, wanted = parse_spec(spec)
-  loaded[name .. "@" .. (wanted or "latest")] = nil
-  return fetch(name, wanted)
+  for k in pairs(loaded) do
+    if k:sub(1, #name + 1) == name .. "@" then loaded[k] = nil end
+  end
+  return fetch(name, wanted, true)
 end
 
 M.update = M.install
@@ -226,13 +255,16 @@ function M.use(spec)
   local key = name .. "@" .. (wanted or "latest")
   if loaded[key] ~= nil then return loaded[key] end
 
-  -- an exact version wins, then the version in moondust.lock, then latest
-  local target = wanted or read_lock()[name]
+  local locked = read_lock()[name]
   local path
-  if target and exists(path_for(name, target)) then
-    path = path_for(name, target)
+  if wanted and wanted ~= locked then
+    -- an exact version that isn't the project's current one is kept separately
+    path = versioned_path(name, wanted)
+    if not exists(path) then download(name, wanted, false) end
   else
-    path = fetch(name, target)
+    -- the project's current version: the locked one, or the latest on first use
+    path = stable_path(name)
+    if not (locked and exists(path)) then fetch(name, locked, true) end
   end
 
   local chunk, err = load_file(path)

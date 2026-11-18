@@ -2,8 +2,8 @@
 -- Drop this file next to your script, then:
 --
 --   local moondust = require("moondust")
---   local json = moondust("alice/json")          -- latest version
---   local old  = moondust("alice/json@1.0.0")    -- exact version
+--   local tf  = moondust("thegamingmahi/tinyfiles")          -- latest version
+--   local old = moondust("thegamingmahi/tinyfiles@1.0.0")    -- exact version
 --
 -- First run downloads the package into ./lua_modules/, later runs reuse it.
 -- Needs `curl` (built into macOS, Linux and Windows 10+).
@@ -12,8 +12,8 @@
 -- packages in the game's save folder. Call it from love.load (downloads block).
 --
 -- Also usable as a command:
---   lua moondust.lua install alice/json
---   lua moondust.lua update alice/json
+--   lua moondust.lua install thegamingmahi/tinyfiles
+--   lua moondust.lua update thegamingmahi/tinyfiles
 
 local SITE = "https://thegamingmahi.github.io/Moondust/"
 local DIR = "lua_modules"
@@ -243,7 +243,7 @@ function M.use(spec)
   return mod
 end
 
--- lets you write moondust("alice/json")
+-- lets you write moondust("thegamingmahi/tinyfiles")
 setmetatable(M, { __call = function(_, spec) return M.use(spec) end })
 
 -- command line mode: lua moondust.lua <command>

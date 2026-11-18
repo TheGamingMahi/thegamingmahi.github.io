@@ -7,11 +7,14 @@
 <style>
 :root{color-scheme:light dark;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da;--gr:#1f883d}
 @media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8;--gr:#238636}}
+:root[data-theme=light]{color-scheme:light;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da;--gr:#1f883d}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8;--gr:#238636}
+.tbtn{font:inherit;font-size:14px;background:none;border:1px solid var(--bd);border-radius:6px;padding:3px 12px;margin-left:12px;cursor:pointer;color:var(--fg)}.tbtn:hover{background:var(--card)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
 header{border-bottom:1px solid var(--bd);background:var(--card)}
 .w{max-width:860px;margin:0 auto;padding:0 16px}
-header .w{display:flex;align-items:center;justify-content:space-between;height:56px}
+header .w{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;min-height:56px;padding-top:4px;padding-bottom:4px}
 header strong{font-size:20px}
 a{color:var(--ac);text-decoration:none}a:hover{text-decoration:underline}
 h2{font-size:20px;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
@@ -26,16 +29,17 @@ input{width:100%;padding:6px 12px;font:inherit;color:var(--fg);background:var(--
 .row{display:flex;gap:8px;margin:8px 0}
 #msg{min-height:24px;margin-top:8px}
 </style>
+<script>try{var t=localStorage.getItem("md_theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
 <header><div class="w"><strong>Moondust</strong>
-<span><a href="moondust.lua" download>Download moondust.lua</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a></span></div></header>
+<span><a href="moondust.lua" download>Download moondust.lua</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a><button id="theme" class="tbtn" type="button"></button></span></div></header>
 <main class="w">
 <p>A tiny package manager for Lua. Drop in one file, then <code>require</code> packages by name.</p>
 <pre>curl -O https://thegamingmahi.github.io/Moondust/moondust.lua</pre>
 <pre>local moondust = require("moondust")
-local json = moondust("alice/json")        -- latest
-local old  = moondust("alice/json@1.0.0")  -- exact version</pre>
+local tf  = moondust("thegamingmahi/tinyfiles")        -- latest
+local old = moondust("thegamingmahi/tinyfiles@1.0.0")  -- exact version</pre>
 
 <h2>Packages</h2>
 <input id="q" placeholder="Search packages" aria-label="Search packages">
@@ -43,7 +47,7 @@ local old  = moondust("alice/json@1.0.0")  -- exact version</pre>
 
 <h2>Publish</h2>
 <p class="mu">Your public GitHub repo needs a <code>moondust.json</code> in its root:</p>
-<pre>{ "name": "json", "version": "1.0.0", "main": "json.lua", "lua": ["5.1", "5.3", "5.4"] }</pre>
+<pre>{ "name": "tinyfiles", "version": "1.0.0", "main": "tinyfiles.lua", "lua": ["5.1", "5.3", "5.4"] }</pre>
 <div id="acct" class="mu">Loading…</div>
 <div id="msg"></div>
 <p class="mu">Packages aren’t reviewed. Check what you install.</p>
@@ -51,6 +55,11 @@ local old  = moondust("alice/json@1.0.0")  -- exact version</pre>
 <script>
 const API="https://moondust.arclightsmp.com";
 const $=s=>document.querySelector(s);
+const root=document.documentElement,tb=$("#theme");
+const curTheme=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+const paintBtn=()=>{tb.textContent=curTheme()==="dark"?"Light mode":"Dark mode"};
+tb.onclick=()=>{const n=curTheme()==="dark"?"light":"dark";root.dataset.theme=n;try{localStorage.setItem("md_theme",n)}catch(e){}paintBtn()};
+paintBtn();
 const el=(t,a={},...k)=>{const e=document.createElement(t);for(const x in a)x==="text"?e.textContent=a[x]:e.setAttribute(x,a[x]);e.append(...k);return e};
 let token="";
 try{

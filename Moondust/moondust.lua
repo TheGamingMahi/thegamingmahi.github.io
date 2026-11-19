@@ -14,14 +14,18 @@
 -- packages in the game's save folder. Call it from love.load (downloads block).
 --
 -- Also usable as a command:
---   lua moondust.lua install thegamingmahi/tinyfiles
---   lua moondust.lua update thegamingmahi/tinyfiles
+--   lua moondust.lua install thegamingmahi/tinyfiles[@1.0.0]   download a package
+--   lua moondust.lua update [thegamingmahi/tinyfiles]          update one package, or all
+--   lua moondust.lua list                                      show installed packages
+--   lua moondust.lua verify                                    check files against moondust.lock
+--   lua moondust.lua uninstall thegamingmahi/tinyfiles         remove a package
+-- moondust.lock also stores a sha256 checksum of every package it installs.
 
 local SITE = "https://thegamingmahi.github.io/Moondust/"
 local DIR = "lua_modules"
 local LOCK = "moondust.lock"
 
-local M = { version = "0.2.0" }
+local M = { version = "0.3.0" }
 local loaded = {}
 
 local function fail(msg)
@@ -89,6 +93,41 @@ end
 local function load_file(path)
   if LOVE then return love.filesystem.load(path) end
   return loadfile(path)
+end
+
+local function remove_file(path)
+  if LOVE then return love.filesystem.remove(path) end
+  return os.remove(path)
+end
+
+-- sha256 of a file as hex, or nil when this machine has no way to compute one
+local sha_cmd
+local function sha256_file(path)
+  if LOVE then
+    local data = love.filesystem.read(path)
+    if not data then return nil end
+    local ok, hex = pcall(function()
+      return love.data.encode("string", "hex", love.data.hash("sha256", data))
+    end)
+    return ok and hex or nil
+  end
+  local cmds = {
+    'sha256sum "' .. path .. '" 2>&1',
+    'shasum -a 256 "' .. path .. '" 2>&1',
+    'openssl dgst -sha256 "' .. path .. '" 2>&1',
+    'certutil -hashfile "' .. (path:gsub("/", "\\")) .. '" SHA256 2>&1',
+  }
+  for _, i in ipairs(sha_cmd and { sha_cmd } or { 1, 2, 3, 4 }) do
+    local out = sh(cmds[i]) or ""
+    for tok in out:gmatch("%x+") do
+      if #tok == 64 then sha_cmd = i; return tok:lower() end
+    end
+    for line in out:gmatch("[^\r\n]+") do        -- old certutil prints the hash with spaces
+      local compact = line:gsub("%s", "")
+      if #compact == 64 and compact:match("^%x+$") then sha_cmd = i; return compact:lower() end
+    end
+  end
+  return nil
 end
 
 -- "author/package" or "author/package@1.2.3"
@@ -178,21 +217,40 @@ local function versioned_path(name, ver)
   return DIR .. "/" .. name .. "@" .. ver .. ".lua"
 end
 
+-- moondust.lock: one line per package   author/package 1.2.0 sha256:<hex>   (the checksum is optional)
 local function read_lock()
-  local t = {}
+  local versions, hashes = {}, {}
   for line in (read_text(LOCK) or ""):gmatch("[^\r\n]+") do
-    local n, v = line:match("^(%S+)%s+(%S+)$")
-    if n then t[n] = v end
+    local n, v, h = line:match("^(%S+)%s+(%S+)%s*(%S*)$")
+    if n then
+      versions[n] = v
+      hashes[n] = h:match("^sha256:(%x+)$")
+    end
   end
-  return t
+  return versions, hashes
 end
 
-local function write_lock(t)
+local function write_lock(versions, hashes)
   local names, out = {}, {}
+  for n in pairs(versions) do names[#names + 1] = n end
+  table.sort(names)
+  for _, n in ipairs(names) do
+    out[#out + 1] = n .. " " .. versions[n] .. (hashes[n] and (" sha256:" .. hashes[n]) or "") .. "\n"
+  end
+  if not write_text(LOCK, table.concat(out)) then fail("could not write " .. LOCK) end
+end
+
+local function sorted_names(t)
+  local names = {}
   for n in pairs(t) do names[#names + 1] = n end
   table.sort(names)
-  for _, n in ipairs(names) do out[#out + 1] = n .. " " .. t[n] .. "\n" end
-  if not write_text(LOCK, table.concat(out)) then fail("could not write " .. LOCK) end
+  return names
+end
+
+local function forget(name)
+  for k in pairs(loaded) do
+    if k:sub(1, #name + 1) == name .. "@" then loaded[k] = nil end
+  end
 end
 
 -- tells LuaLS (the engine behind most Lua editor plugins) to treat moondust("...") like require
@@ -213,6 +271,8 @@ local function editor_config()
   end
 end
 
+local no_tool_warned = false
+
 local function download(name, wanted, current)
   local e = resolve(name, wanted)
   check_lua(name, e)
@@ -225,16 +285,31 @@ local function download(name, wanted, current)
   local url = "https://raw.githubusercontent.com/" .. e.repo .. "/" .. e.commit .. "/" .. e.main
   local path = current and stable_path(name) or versioned_path(name, e.version)
   if not download_to(url, path) then fail("download failed for " .. name) end
-  return path, e.version
+
+  -- checksum: if this exact version is already in moondust.lock, the download must match it
+  local hash = sha256_file(path)
+  if current then
+    local versions, hashes = read_lock()
+    if hash and hashes[name] and versions[name] == e.version and hashes[name] ~= hash then
+      remove_file(path)
+      fail("checksum mismatch for " .. name .. " " .. e.version .. " (moondust.lock has "
+        .. hashes[name]:sub(1, 12) .. "..., the download is " .. hash:sub(1, 12) .. "...). The file was removed.")
+    end
+    if not hash and not no_tool_warned then
+      no_tool_warned = true
+      io.stderr:write("moondust: no sha256 tool found (sha256sum, shasum, openssl or certutil), checksums are skipped\n")
+    end
+  end
+  return path, e.version, hash
 end
 
 -- downloads the project's current version of a package and remembers it in moondust.lock
 local function fetch(name, wanted, current)
-  local path, ver = download(name, wanted, current)
+  local path, ver, hash = download(name, wanted, current)
   if current then
-    local lock = read_lock()
-    lock[name] = ver
-    write_lock(lock)
+    local versions, hashes = read_lock()
+    versions[name], hashes[name] = ver, hash
+    write_lock(versions, hashes)
     editor_config()
   end
   return path, ver
@@ -242,20 +317,68 @@ end
 
 function M.install(spec)
   local name, wanted = parse_spec(spec)
-  for k in pairs(loaded) do
-    if k:sub(1, #name + 1) == name .. "@" then loaded[k] = nil end
-  end
+  forget(name)
   return fetch(name, wanted, true)
 end
 
-M.update = M.install
+-- update("author/package") updates one package, update() updates everything in moondust.lock
+function M.update(spec)
+  if spec then return M.install(spec) end
+  local versions = read_lock()
+  local results = {}
+  for _, n in ipairs(sorted_names(versions)) do
+    local ok, path, ver = pcall(M.install, n)
+    results[#results + 1] = { name = n, old = versions[n], new = ok and ver or nil, err = (not ok) and tostring(path) or nil }
+  end
+  return results
+end
+
+function M.list()
+  local versions, hashes = read_lock()
+  local out = {}
+  for _, n in ipairs(sorted_names(versions)) do
+    out[#out + 1] = { name = n, version = versions[n], sha256 = hashes[n], installed = exists(stable_path(n)) }
+  end
+  return out
+end
+
+-- checks every installed file against the checksum in moondust.lock; returns results and a problem count
+function M.verify()
+  local results, bad = {}, 0
+  for _, p in ipairs(M.list()) do
+    local state = "OK"
+    if not p.installed then
+      state = "MISSING"
+    elseif not p.sha256 then
+      state = "NO CHECKSUM"
+    else
+      local h = sha256_file(stable_path(p.name))
+      if not h then state = "CANNOT CHECK" elseif h ~= p.sha256 then state = "CHANGED" end
+    end
+    if state ~= "OK" then bad = bad + 1 end
+    results[#results + 1] = { name = p.name, version = p.version, state = state }
+  end
+  return results, bad
+end
+
+function M.uninstall(spec)
+  local name = parse_spec(spec)
+  local versions, hashes = read_lock()
+  local had = versions[name] ~= nil or exists(stable_path(name))
+  remove_file(stable_path(name))
+  versions[name], hashes[name] = nil, nil
+  write_lock(versions, hashes)
+  forget(name)
+  return had
+end
 
 function M.use(spec)
   local name, wanted = parse_spec(spec)
   local key = name .. "@" .. (wanted or "latest")
   if loaded[key] ~= nil then return loaded[key] end
 
-  local locked = read_lock()[name]
+  local versions, hashes = read_lock()
+  local locked = versions[name]
   local path
   if wanted and wanted ~= locked then
     -- an exact version that isn't the project's current one is kept separately
@@ -264,7 +387,15 @@ function M.use(spec)
   else
     -- the project's current version: the locked one, or the latest on first use
     path = stable_path(name)
-    if not (locked and exists(path)) then fetch(name, locked, true) end
+    if not (locked and exists(path)) then
+      fetch(name, locked, true)
+    elseif hashes[name] and os.getenv("MOONDUST_VERIFY") then
+      local h = sha256_file(path)
+      if h and h ~= hashes[name] then
+        fail("checksum mismatch: " .. path .. " was changed (restore it with: lua moondust.lua install "
+          .. name .. "@" .. locked .. ")")
+      end
+    end
   end
 
   local chunk, err = load_file(path)
@@ -281,20 +412,46 @@ setmetatable(M, { __call = function(_, spec) return M.use(spec) end })
 -- command line mode: lua moondust.lua <command>
 if arg and arg[0] and arg[0]:match("moondust%.lua$") then
   local cmd, spec = arg[1], arg[2]
+  local function die(err) io.stderr:write(tostring(err), "\n") os.exit(1) end
   if (cmd == "install" or cmd == "update") and spec then
     local ok, path, ver = pcall(M.install, spec)
-    if not ok then
-      io.stderr:write(tostring(path), "\n")
-      os.exit(1)
-    end
+    if not ok then die(path) end
     print("installed " .. spec .. " (" .. ver .. ") -> " .. path)
+  elseif cmd == "update" then
+    local results, failed = M.update(), false
+    if #results == 0 then print("no packages in " .. LOCK) end
+    for _, r in ipairs(results) do
+      if r.err then failed = true; print(r.name .. ": FAILED " .. r.err)
+      elseif r.old == r.new then print(r.name .. ": already the latest (" .. r.new .. ")")
+      else print(r.name .. ": " .. tostring(r.old) .. " -> " .. r.new) end
+    end
+    if failed then os.exit(1) end
+  elseif cmd == "list" then
+    local list = M.list()
+    if #list == 0 then print("no packages in " .. LOCK) end
+    for _, p in ipairs(list) do
+      print(p.name .. " " .. p.version .. (p.sha256 and ("  sha256:" .. p.sha256:sub(1, 12) .. "...") or "")
+        .. (p.installed and "" or "  (file missing)"))
+    end
+  elseif cmd == "verify" then
+    local results, bad = M.verify()
+    if #results == 0 then print("no packages in " .. LOCK) end
+    for _, r in ipairs(results) do print(string.format("%-12s %s %s", r.state, r.name, r.version)) end
+    if bad > 0 then os.exit(1) end
+  elseif cmd == "uninstall" and spec then
+    local ok, had = pcall(M.uninstall, spec)
+    if not ok then die(had) end
+    print(had and ("removed " .. spec) or ("nothing to remove for " .. spec))
   elseif cmd == "login" or cmd == "register" or cmd == "publish" then
     print("moondust: '" .. cmd .. "' is coming soon (it needs the registry server)")
   else
     print("moondust " .. M.version)
     print("usage:")
-    print("  lua moondust.lua install author/package[@version]")
-    print("  lua moondust.lua update author/package")
+    print("  lua moondust.lua install author/package[@version]   download a package")
+    print("  lua moondust.lua update [author/package]            update one package, or all of them")
+    print("  lua moondust.lua list                               show installed packages")
+    print("  lua moondust.lua verify                             check files against moondust.lock")
+    print("  lua moondust.lua uninstall author/package           remove a package")
   end
 end
 

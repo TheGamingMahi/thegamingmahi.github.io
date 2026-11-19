@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moondust documentation</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8}}
+:root[data-theme=light]{color-scheme:light;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+header{border-bottom:1px solid var(--bd);background:var(--card)}
+.w{max-width:860px;margin:0 auto;padding:0 16px}
+header .w{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;min-height:56px;padding-top:4px;padding-bottom:4px}
+header strong{font-size:20px}
+a{color:var(--ac);text-decoration:none}a:hover{text-decoration:underline}
+h1{font-size:28px;margin:24px 0 8px}
+h2{font-size:22px;margin:40px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+h3{font-size:17px;margin:24px 0 6px}
+pre,code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0}
+code{background:var(--card);padding:2px 6px;border-radius:6px}
+pre code{background:none;padding:0}
+.mu{color:var(--mu)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:15px}
+th,td{border:1px solid var(--bd);padding:6px 12px;text-align:left;vertical-align:top}
+th{background:var(--card)}
+td:first-child{white-space:nowrap}
+nav.toc{border:1px solid var(--bd);border-radius:6px;background:var(--card);padding:8px 16px;margin:16px 0}
+nav.toc a{display:inline-block;margin-right:14px}
+.tbtn{font:inherit;font-size:14px;line-height:1.5;background:none;border:1px solid var(--bd);border-radius:6px;padding:3px 12px;margin-left:12px;cursor:pointer;color:var(--fg)}
+.tbtn:hover{background:var(--card)}
+a.tbtn{display:inline-block;text-decoration:none;color:var(--fg)}
+</style>
+<script>try{var t=localStorage.getItem("md_theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header><div class="w"><strong><a href="./" style="color:inherit">Moondust</a></strong>
+<span><a href="./">Home</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a><button id="theme" class="tbtn" type="button"></button></span></div></header>
+<main class="w">
+<h1>Documentation</h1>
+<p>Moondust is a tiny package manager for Lua. You drop in one file, and <code>moondust("author/package")</code> downloads a package the first time and loads it like <code>require</code>.</p>
+<nav class="toc"><a href="#install">Install</a><a href="#using">Using packages</a><a href="#versions">Versions</a><a href="#cli">Command line</a><a href="#files">Files</a><a href="#publishing">Publishing</a><a href="#manifest">moondust.json</a><a href="#checksums">Checksums</a><a href="#editor">Editor autocomplete</a><a href="#love">LÖVE</a><a href="#settings">Settings</a><a href="#trouble">Troubleshooting</a></nav>
+
+<h2 id="install">Install</h2>
+<p>Download <a href="moondust.lua" download>moondust.lua</a> and put it next to your script:</p>
+<pre><code>curl -O https://thegamingmahi.github.io/Moondust/moondust.lua</code></pre>
+<p>It works on Lua 5.1 to 5.5 and LuaJIT, and needs <code>curl</code> (already on macOS, Linux and Windows 10 and later). Moondust only handles pure Lua packages for now.</p>
+
+<h2 id="using">Using packages</h2>
+<h3>Local (recommended)</h3>
+<pre><code>local moondust = require("moondust")
+local tf = moondust("thegamingmahi/tinyfiles")
+
+tf.writefile("hello.txt", "Hi")</code></pre>
+<p>The first run downloads the package. Later runs load it from disk. You never give a file path.</p>
+<h3>No variable (the package sets its own globals)</h3>
+<p>Some packages, like TinyFiles, create global functions when they load, so you can just use them:</p>
+<pre><code>require("moondust")("thegamingmahi/tinyfiles")
+
+wait(2)
+writefile("hello.txt", "Hi")
+print(readfile("hello.txt"))</code></pre>
+<h3>Global moondust (many files)</h3>
+<p>Set it once in your main file, then call it from any other file without requiring it again:</p>
+<pre><code>-- main.lua
+moondust = require("moondust")
+
+-- any other file
+local tf = moondust("thegamingmahi/tinyfiles")</code></pre>
+<h3>From code</h3>
+<div class="scroll"><table>
+<tr><th>Call</th><th>What it does</th></tr>
+<tr><td><code>moondust("a/b")</code></td><td>Load a package, downloading it if needed. <code>moondust.use("a/b")</code> is the same.</td></tr>
+<tr><td><code>moondust.install("a/b")</code></td><td>Download the latest version and make it the project’s current one.</td></tr>
+<tr><td><code>moondust.update("a/b")</code></td><td>Same as install. With no argument, updates every package in <code>moondust.lock</code> and returns a list of results.</td></tr>
+<tr><td><code>moondust.list()</code></td><td>Returns the installed packages (name, version, sha256, installed).</td></tr>
+<tr><td><code>moondust.verify()</code></td><td>Checks files against the lock. Returns the results and how many have a problem.</td></tr>
+<tr><td><code>moondust.uninstall("a/b")</code></td><td>Removes the package and its lock entry. Returns whether anything was removed.</td></tr>
+</table></div>
+
+<h2 id="versions">Versions</h2>
+<pre><code>moondust("thegamingmahi/tinyfiles")          -- the project's current version (latest on first use)
+moondust("thegamingmahi/tinyfiles@1.0.0")    -- an exact version</code></pre>
+<p>The first time you use a package, Moondust picks the newest version and remembers it in <code>moondust.lock</code>. After that your project stays on that version, even when the author publishes a newer one, so your code never changes under you. To move to the newest version:</p>
+<pre><code>lua moondust.lua update thegamingmahi/tinyfiles</code></pre>
+<p>An exact version like <code>@1.0.0</code> that isn’t the current one is saved next to it and doesn’t change the lock. Published versions can never be overwritten.</p>
+
+<h2 id="cli">Command line</h2>
+<p>The same file works as a command:</p>
+<div class="scroll"><table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>lua moondust.lua install author/package</code></td><td>Download the latest version and record it in <code>moondust.lock</code>.</td></tr>
+<tr><td><code>lua moondust.lua install author/package@1.0.0</code></td><td>Same, for an exact version.</td></tr>
+<tr><td><code>lua moondust.lua update author/package</code></td><td>Switch one package to its newest version.</td></tr>
+<tr><td><code>lua moondust.lua update</code></td><td>Update every package in <code>moondust.lock</code>.</td></tr>
+<tr><td><code>lua moondust.lua list</code></td><td>Show installed packages with their version and checksum.</td></tr>
+<tr><td><code>lua moondust.lua verify</code></td><td>Check every installed file against the lock. Exits with code 1 if anything is wrong.</td></tr>
+<tr><td><code>lua moondust.lua uninstall author/package</code></td><td>Remove a package and its lock entry.</td></tr>
+<tr><td><code>lua moondust.lua</code></td><td>Show the help text.</td></tr>
+</table></div>
+<p class="mu">Logging in and publishing from the command line are coming soon. For now, publish on the website.</p>
+
+<h2 id="files">Files Moondust creates</h2>
+<pre><code>your-project/
+├── moondust.lua                       the loader you downloaded
+├── moondust.lock                      versions and checksums (commit this)
+├── .luarc.json                        editor settings (see Editor autocomplete)
+└── lua_modules/
+    └── thegamingmahi/
+        ├── tinyfiles.lua              the project's current version
+        └── tinyfiles@1.0.0.lua        another exact version you asked for</code></pre>
+<p><code>moondust.lock</code> has one line per package:</p>
+<pre><code>thegamingmahi/tinyfiles 1.0.0 sha256:66dd096ef15720e64e74562892f69a8fcd5cadcfa9bbeec72b9ed5a0b831f0e8</code></pre>
+
+<h2 id="publishing">Publishing a package</h2>
+<ol>
+<li>Put a <a href="#manifest"><code>moondust.json</code></a> in the root of a public GitHub repo that you own.</li>
+<li>On the <a href="./">homepage</a>, log in with GitHub and claim your username. You can do this once, and it can’t be changed.</li>
+<li>Paste your repo and press <b>Publish</b>.</li>
+</ol>
+<p>Your package becomes <code>username/name</code>. Each version is pinned to your repo’s latest commit at that moment. To release an update, raise <code>version</code> in <code>moondust.json</code> and publish again. A version can only be published once. New versions can take a few minutes to show up everywhere.</p>
+
+<h2 id="manifest">moondust.json</h2>
+<pre><code>{
+  "name": "tinyfiles",
+  "version": "1.0.0",
+  "description": "Tiny Lua library for reading and writing files",
+  "main": "tinyfiles.lua",
+  "lua": ["5.1", "5.3", "5.4"]
+}</code></pre>
+<div class="scroll"><table>
+<tr><th>Field</th><th>Required</th><th>Meaning</th></tr>
+<tr><td><code>name</code></td><td>yes</td><td>Letters, numbers, <code>-</code> and <code>_</code>, up to 40 characters. The package is published as <code>username/name</code>.</td></tr>
+<tr><td><code>version</code></td><td>yes</td><td>Three numbers, like <code>1.0.0</code>. Each version can only be published once.</td></tr>
+<tr><td><code>main</code></td><td>yes</td><td>The one <code>.lua</code> file in the repo root that Moondust downloads, up to 512 KB.</td></tr>
+<tr><td><code>description</code></td><td>no</td><td>Short text shown on the website, up to 200 characters.</td></tr>
+<tr><td><code>lua</code></td><td>no</td><td>The Lua versions it supports, from <code>"5.1"</code> to <code>"5.5"</code>. Defaults to <code>["5.3"]</code>. LÖVE games run Lua 5.1, so include <code>"5.1"</code> for them.</td></tr>
+</table></div>
+
+<h2 id="checksums">Checksums and safety</h2>
+<ul>
+<li>Every version is pinned to an exact commit, so a package can’t change after it’s published.</li>
+<li><code>moondust.lock</code> stores a SHA-256 checksum of each package it installs. If you download that version again (a fresh clone, a restored file), the download must match the checksum or it’s refused and deleted. Commit <code>moondust.lock</code> to git so your whole team gets the same files.</li>
+<li><code>lua moondust.lua verify</code> checks your installed files against the lock. Set <code>MOONDUST_VERIFY=1</code> to check on every load (slower).</li>
+<li>Checksums need <code>sha256sum</code>, <code>shasum</code>, <code>openssl</code> or <code>certutil</code> (all common), or LÖVE. Without one, Moondust warns and skips the check.</li>
+<li>The registry doesn’t store a checksum yet, so your first download is trusted by its commit. Packages aren’t reviewed. Moondust runs code from the internet, so check what you install.</li>
+</ul>
+
+<h2 id="editor">Editor autocomplete</h2>
+<p>On the first download, Moondust creates a small <code>.luarc.json</code>. Editors that use the Lua language server (the Lua extension for VS Code, Neovim, Zed) then treat <code>moondust(...)</code> like <code>require</code>:</p>
+<pre><code>local moondust = require("moondust")   -- keep this name
+local tf = moondust("thegamingmahi/tinyfiles")
+tf.   -- suggestions appear here</code></pre>
+<ul>
+<li>Functions that a package makes global, like <code>wait()</code> and <code>writefile()</code> in TinyFiles, autocomplete too.</li>
+<li>It works when <code>lua_modules</code> is in <code>.gitignore</code>, and when <code>moondust</code> is a global.</li>
+<li>It only recognizes the name <code>moondust</code>. <code>local md = require("moondust")</code> gets no suggestions.</li>
+<li>If you already have a <code>.luarc.json</code>, Moondust leaves it alone and prints the settings to add. Reload your editor window once if suggestions don’t appear.</li>
+</ul>
+
+<h2 id="love">LÖVE</h2>
+<p>Use LÖVE 12 or newer. Moondust then uses LÖVE’s built-in https module instead of <code>curl</code>, and saves packages in the game’s save folder. Call it from <code>love.load</code>, because downloads pause the game. LÖVE runs LuaJIT (Lua 5.1), so packages must list <code>"5.1"</code>. The command line and <code>.luarc.json</code> aren’t used in LÖVE.</p>
+<pre><code>function love.load()
+  local moondust = require("moondust")
+  tf = moondust("thegamingmahi/tinyfiles")
+end</code></pre>
+
+<h2 id="settings">Settings</h2>
+<div class="scroll"><table>
+<tr><th>Environment variable</th><th>Effect</th></tr>
+<tr><td><code>MOONDUST_NO_LUARC=1</code></td><td>Don’t create or mention <code>.luarc.json</code>.</td></tr>
+<tr><td><code>MOONDUST_VERIFY=1</code></td><td>Check each package’s checksum every time it loads.</td></tr>
+</table></div>
+
+<h2 id="trouble">Troubleshooting</h2>
+<div class="scroll"><table>
+<tr><th>Message</th><th>What it means</th></tr>
+<tr><td><code>package not found</code></td><td>No package has that name. Usernames are lowercase.</td></tr>
+<tr><td><code>has no matching version</code></td><td>That version number doesn’t exist.</td></tr>
+<tr><td><code>needs Lua 5.3 or 5.4</code></td><td>The package doesn’t support the Lua version you run.</td></tr>
+<tr><td><code>could not reach the registry</code></td><td>No internet, or <code>curl</code> is missing. Moondust reads the package list from this website.</td></tr>
+<tr><td><code>download failed</code></td><td>GitHub couldn’t be reached, or the file is missing.</td></tr>
+<tr><td><code>checksum mismatch</code></td><td>A file or download doesn’t match <code>moondust.lock</code>. Restore it with <code>lua moondust.lua install author/package@version</code>.</td></tr>
+<tr><td><code>no sha256 tool found</code></td><td>Checksums are skipped. Install <code>sha256sum</code>, <code>shasum</code> or <code>openssl</code> to enable them.</td></tr>
+<tr><td><code>claim a username first</code></td><td>Publishing needs a username. Claim one on the homepage.</td></tr>
+<tr><td><code>repo not found (it must be public)</code></td><td>Check the spelling, and that the repo is public.</td></tr>
+<tr><td><code>you can only publish repos you own</code></td><td>Moondust checks that the repo belongs to your GitHub account.</td></tr>
+<tr><td><code>moondust.json not found in the repo root</code></td><td>Add the file to the top level of your repo, then publish again.</td></tr>
+<tr><td><code>that version is already published</code></td><td>Raise <code>version</code> in <code>moondust.json</code>.</td></tr>
+<tr><td><code>slow down, try again in a few seconds</code></td><td>Publishing is limited to one try every 10 seconds.</td></tr>
+</table></div>
+<p class="mu">Packages aren’t reviewed. Check what you install.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const root=document.documentElement,tb=$("#theme");
+const curTheme=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+const paintBtn=()=>{tb.textContent=curTheme()==="dark"?"Light mode":"Dark mode"};
+tb.onclick=()=>{const n=curTheme()==="dark"?"light":"dark";root.dataset.theme=n;try{localStorage.setItem("md_theme",n)}catch(e){}paintBtn()};
+paintBtn();
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 @media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8;--gr:#238636}}
 :root[data-theme=light]{color-scheme:light;--bg:#fff;--fg:#1f2328;--mu:#59636e;--bd:#d1d9e0;--card:#f6f8fa;--ac:#0969da;--gr:#1f883d}
 :root[data-theme=dark]{color-scheme:dark;--bg:#0d1117;--fg:#e6edf3;--mu:#9198a1;--bd:#3d444d;--card:#151b23;--ac:#4493f8;--gr:#238636}
-.tbtn{font:inherit;font-size:14px;background:none;border:1px solid var(--bd);border-radius:6px;padding:3px 12px;margin-left:12px;cursor:pointer;color:var(--fg)}.tbtn:hover{background:var(--card)}
+a.tbtn{display:inline-block;text-decoration:none}.tbtn{font:inherit;font-size:14px;line-height:1.5;background:none;border:1px solid var(--bd);border-radius:6px;padding:3px 12px;margin-left:12px;cursor:pointer;color:var(--fg)}.tbtn:hover{background:var(--card)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
 header{border-bottom:1px solid var(--bd);background:var(--card)}
@@ -33,7 +33,7 @@ input{width:100%;padding:6px 12px;font:inherit;color:var(--fg);background:var(--
 </head>
 <body>
 <header><div class="w"><strong>Moondust</strong>
-<span><a href="moondust.lua" download>Download moondust.lua</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a><button id="theme" class="tbtn" type="button"></button></span></div></header>
+<span><a href="moondust.lua" download>Download moondust.lua</a> · <a href="https://github.com/thegamingmahi/moondust">GitHub</a><button id="theme" class="tbtn" type="button"></button><a class="tbtn" href="docs.html">Docs</a></span></div></header>
 <main class="w">
 <p>A tiny package manager for Lua. Drop in one file, then <code>require</code> packages by name.</p>
 <pre>curl -O https://thegamingmahi.github.io/Moondust/moondust.lua</pre>
